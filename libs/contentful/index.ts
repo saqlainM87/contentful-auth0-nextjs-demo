@@ -9,9 +9,11 @@ const client = createClient({
     accessToken: personalAccessToken,
 });
 
-const getEnvironment = async (): Promise<contentful.Environment> => {
+const getEnvironment = async (
+    environmentId?: string
+): Promise<contentful.Environment> => {
     const space = await client.getSpace(spaceId);
-    const environment = await space.getEnvironment('master');
+    const environment = await space.getEnvironment(environmentId || 'develop');
 
     return environment;
 };
@@ -23,4 +25,14 @@ export const getEntries = async (query?: contentful.QueryOptions) => {
     });
 
     return entries;
+};
+
+export const createEntry = async (
+    contentTypeId: string,
+    data: Omit<contentful.EntryProps<contentful.KeyValueMap>, 'sys'>
+) => {
+    const environment = await getEnvironment();
+    const newEntry = await environment.createEntry(contentTypeId, data);
+
+    return newEntry;
 };
