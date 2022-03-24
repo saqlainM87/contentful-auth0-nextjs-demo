@@ -36,3 +36,10 @@ export const createEntry = async (
 
     return newEntry;
 };
+
+export const removeEntry = async (entryId: string) => {
+    const environment = await getEnvironment();
+    const entry = await environment.getEntry(entryId);
+
+    return entry.delete();
+};

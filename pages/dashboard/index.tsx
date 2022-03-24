@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 
-import { createEntry, getEntries } from '../../libs/contentful';
+import { createEntry, getEntries, removeEntry } from '../../libs/contentful';
 
 const Dashboard: NextPage = () => {
     const { user, error, isLoading } = useUser();
@@ -55,6 +55,16 @@ const Dashboard: NextPage = () => {
         }
     };
 
+    const handleRemove = (entryId: string) => async () => {
+        try {
+            await removeEntry(entryId);
+
+            getFoodsData();
+        } catch (error) {
+            //
+        }
+    };
+
     if (isLoading) return <div>Loading...</div>;
 
     if (error) return <div>{error.message}</div>;
@@ -83,7 +93,16 @@ const Dashboard: NextPage = () => {
                     {foods.length > 0 ? (
                         foods.map((food) => (
                             <li key={food?.sys?.id}>
-                                <h4>{food?.fields?.foodName?.['en-US']}</h4>
+                                {console.log(food)}
+                                <span>
+                                    {food?.fields?.foodName?.['en-US']}
+                                    <button
+                                        onClick={handleRemove(food?.sys?.id)}
+                                        style={{ marginLeft: '0.5rem' }}
+                                    >
+                                        &#128465;
+                                    </button>
+                                </span>
                             </li>
                         ))
                     ) : (
