@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 
-import { createEntry, getEntries, removeEntry } from '../../libs/contentful';
+import { contentfulInstance as contentful } from '../../libs/contentful';
 
 const Dashboard: NextPage = () => {
     const { user, error, isLoading } = useUser();
@@ -14,7 +14,7 @@ const Dashboard: NextPage = () => {
 
     const getFoodsData = useCallback(async () => {
         try {
-            const entries = await getEntries({
+            const entries = await contentful.getEntries({
                 content_type: 'favoriteFoods',
                 'fields.userId': user?.sub,
             });
@@ -31,11 +31,11 @@ const Dashboard: NextPage = () => {
         if (user) {
             getFoodsData();
         }
-    }, [getFoodsData, user]);
+    }, [getFoodsData, user, contentful]);
 
     const handleAdd = async () => {
         try {
-            const entry = await createEntry('favoriteFoods', {
+            const entry = await contentful.createEntry('favoriteFoods', {
                 fields: {
                     userId: {
                         'en-US': user?.sub,
@@ -57,7 +57,7 @@ const Dashboard: NextPage = () => {
 
     const handleRemove = (entryId: string) => async () => {
         try {
-            await removeEntry(entryId);
+            await contentful.removeEntry(entryId);
 
             getFoodsData();
         } catch (error) {

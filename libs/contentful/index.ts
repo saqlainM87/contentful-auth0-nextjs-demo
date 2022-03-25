@@ -1,45 +1,74 @@
-import contentful, { createClient } from 'contentful-management';
+import contentful, { ClientAPI, createClient } from 'contentful-management';
 
-const personalAccessToken =
-    process.env.NEXT_PUBLIC_CONTENTFUL_PERSONAL_ACCESS_TOKEN || '';
-const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || '';
+class Contentful {
+    private static PERSONAL_ACCESS_TOKEN =
+        process.env.NEXT_PUBLIC_CONTENTFUL_PERSONAL_ACCESS_TOKEN || '';
+    private static CLIENT?: ClientAPI;
+    private static INSTANCE?: Contentful;
+    private spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || '';
+    private environment?: contentful.Environment;
 
-const client = createClient({
-    // This is the access token for this space. Normally you get the token in the Contentful web app
-    accessToken: personalAccessToken,
-});
+    private constructor() {}
 
-const getEnvironment = async (
-    environmentId?: string
-): Promise<contentful.Environment> => {
-    const space = await client.getSpace(spaceId);
-    const environment = await space.getEnvironment(environmentId || 'develop');
+    public static createInstance = (): Contentful => {
+        if (Contentful.INSTANCE) {
+            return Contentful.INSTANCE;
+        }
 
-    return environment;
-};
+        try {
+            Contentful.CLIENT = createClient({
+                // This is the access token for this space. Normally you get the token in the Contentful web app
+                accessToken: Contentful.PERSONAL_ACCESS_TOKEN,
+            });
 
-export const getEntries = async (query?: contentful.QueryOptions) => {
-    const environment = await getEnvironment();
-    const entries = await environment.getEntries({
-        ...query,
-    });
+            Contentful.INSTANCE = new Contentful();
+        } catch (error) {
+            console.error(error);
+        }
 
-    return entries;
-};
+        return Contentful.INSTANCE!;
+    };
 
-export const createEntry = async (
-    contentTypeId: string,
-    data: Omit<contentful.EntryProps<contentful.KeyValueMap>, 'sys'>
-) => {
-    const environment = await getEnvironment();
-    const newEntry = await environment.createEntry(contentTypeId, data);
+    public setEnvironment = async (
+        environmentId?: string
+    ): Promise<contentful.Environment | void> => {
+        if (Contentful.CLIENT) {
+            const space = await Contentful.CLIENT.getSpace(this.spaceId);
+            const environment = await space.getEnvironment(
+                environmentId || 'develop'
+            );
 
-    return newEntry;
-};
+            this.environment = environment;
 
-export const removeEntry = async (entryId: string) => {
-    const environment = await getEnvironment();
-    const entry = await environment.getEntry(entryId);
+            return this.environment;
+        }
+    };
 
-    return entry.delete();
-};
+    public getEntries = async (query?: contentful.QueryOptions) => {
+        const environment = this.environment ?? (await this.setEnvironment());
+        const entries = await environment?.getEntries({
+            ...query,
+        });
+
+        return entries;
+    };
+
+    public createEntry = async (
+        contentTypeId: string,
+        data: Omit<contentful.EntryProps<contentful.KeyValueMap>, 'sys'>
+    ) => {
+        const environment = this.environment ?? (await this.setEnvironment());
+        const newEntry = await environment?.createEntry(contentTypeId, data);
+
+        return newEntry;
+    };
+
+    public removeEntry = async (entryId: string) => {
+        const environment = this.environment ?? (await this.setEnvironment());
+        const entry = await environment?.getEntry(entryId);
+
+        return entry?.delete();
+    };
+}
+
+export const contentfulInstance = Contentful.createInstance();
