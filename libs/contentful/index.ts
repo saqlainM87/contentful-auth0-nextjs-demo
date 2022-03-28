@@ -59,15 +59,17 @@ class Contentful {
     ) => {
         const environment = this.environment ?? (await this.setEnvironment());
         const newEntry = await environment?.createEntry(contentTypeId, data);
+        const publishedEntry = await newEntry?.publish();
 
-        return newEntry;
+        return publishedEntry;
     };
 
     public removeEntry = async (entryId: string) => {
         const environment = this.environment ?? (await this.setEnvironment());
         const entry = await environment?.getEntry(entryId);
+        const unpublishedEntry = await entry?.unpublish();
 
-        return entry?.delete();
+        return unpublishedEntry?.delete();
     };
 }
 

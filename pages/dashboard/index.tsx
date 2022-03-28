@@ -31,7 +31,7 @@ const Dashboard: NextPage = () => {
         if (user) {
             getFoodsData();
         }
-    }, [getFoodsData, user, contentful]);
+    }, [getFoodsData, user]);
 
     const handleAdd = async () => {
         try {
@@ -93,7 +93,6 @@ const Dashboard: NextPage = () => {
                     {foods.length > 0 ? (
                         foods.map((food) => (
                             <li key={food?.sys?.id}>
-                                {console.log(food)}
                                 <span>
                                     {food?.fields?.foodName?.['en-US']}
                                     <button
