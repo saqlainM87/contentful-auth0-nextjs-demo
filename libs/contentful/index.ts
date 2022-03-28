@@ -1,12 +1,18 @@
 import contentful, { ClientAPI, createClient } from 'contentful-management';
-
+import {
+    ContentfulClientApi,
+    createClient as createCDAClient,
+} from 'contentful';
 class Contentful {
     private static PERSONAL_ACCESS_TOKEN =
         process.env.NEXT_PUBLIC_CONTENTFUL_PERSONAL_ACCESS_TOKEN || '';
+    private static CDA_ACCESS_TOKEN =
+        process.env.NEXT_PUBLIC_CONTENTFUL_CDA_ACCESS_TOKEN || '';
     private static CLIENT?: ClientAPI;
+    private static CDA_CLIENT?: ContentfulClientApi;
     private static INSTANCE?: Contentful;
-    private spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || '';
-    private environment?: contentful.Environment;
+    private static SPACE_ID = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || '';
+    private static ENVIRONMENT?: contentful.Environment;
 
     private constructor() {}
 
@@ -19,6 +25,11 @@ class Contentful {
             Contentful.CLIENT = createClient({
                 // This is the access token for this space. Normally you get the token in the Contentful web app
                 accessToken: Contentful.PERSONAL_ACCESS_TOKEN,
+            });
+            Contentful.CDA_CLIENT = createCDAClient({
+                accessToken: Contentful.CDA_ACCESS_TOKEN,
+                space: Contentful.SPACE_ID,
+                environment: Contentful.ENVIRONMENT?.sys.id || 'develop',
             });
 
             Contentful.INSTANCE = new Contentful();
@@ -33,20 +44,19 @@ class Contentful {
         environmentId?: string
     ): Promise<contentful.Environment | void> => {
         if (Contentful.CLIENT) {
-            const space = await Contentful.CLIENT.getSpace(this.spaceId);
+            const space = await Contentful.CLIENT.getSpace(Contentful.SPACE_ID);
             const environment = await space.getEnvironment(
                 environmentId || 'develop'
             );
 
-            this.environment = environment;
+            Contentful.ENVIRONMENT = environment;
 
-            return this.environment;
+            return Contentful.ENVIRONMENT;
         }
     };
 
     public getEntries = async (query?: contentful.QueryOptions) => {
-        const environment = this.environment ?? (await this.setEnvironment());
-        const entries = await environment?.getEntries({
+        const entries = await Contentful.CDA_CLIENT?.getEntries({
             ...query,
         });
 
@@ -57,7 +67,7 @@ class Contentful {
         contentTypeId: string,
         data: Omit<contentful.EntryProps<contentful.KeyValueMap>, 'sys'>
     ) => {
-        const environment = this.environment ?? (await this.setEnvironment());
+        const environment = this.ENVIRONMENT ?? (await this.setEnvironment());
         const newEntry = await environment?.createEntry(contentTypeId, data);
         const publishedEntry = await newEntry?.publish();
 
@@ -65,7 +75,7 @@ class Contentful {
     };
 
     public removeEntry = async (entryId: string) => {
-        const environment = this.environment ?? (await this.setEnvironment());
+        const environment = this.ENVIRONMENT ?? (await this.setEnvironment());
         const entry = await environment?.getEntry(entryId);
         const unpublishedEntry = await entry?.unpublish();
 

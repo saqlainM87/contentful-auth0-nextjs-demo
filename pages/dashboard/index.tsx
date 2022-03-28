@@ -94,7 +94,7 @@ const Dashboard: NextPage = () => {
                         foods.map((food) => (
                             <li key={food?.sys?.id}>
                                 <span>
-                                    {food?.fields?.foodName?.['en-US']}
+                                    {food?.fields?.foodName}
                                     <button
                                         onClick={handleRemove(food?.sys?.id)}
                                         style={{ marginLeft: '0.5rem' }}
