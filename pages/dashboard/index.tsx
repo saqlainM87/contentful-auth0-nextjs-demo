@@ -95,11 +95,40 @@ const Dashboard: NextPage = () => {
 
     const handleRemove = (entryId: string) => async () => {
         try {
-            await contentful.removeEntry(entryId);
+            const environment = await contentful.currentEnvironment;
 
-            getFoodsData();
+            if (environment) {
+                const userEntries = await environment.getEntries({
+                    content_type: 'user',
+                    'fields.id': user?.sub,
+                });
+                const entryToUpdate = userEntries?.items[0];
+
+                if (entryToUpdate) {
+                    const existingData: any[] =
+                        entryToUpdate?.fields?.favoriteFoods?.['en-US'] ?? [];
+                    const updatedData = existingData.filter(
+                        (data) => data.sys?.id !== entryId
+                    );
+
+                    entryToUpdate.fields = {
+                        ...entryToUpdate.fields,
+                        favoriteFoods: {
+                            'en-US': updatedData,
+                        },
+                    };
+
+                    const updatedEntry = await entryToUpdate.update();
+
+                    if (updatedEntry) {
+                        await updatedEntry.publish();
+
+                        getFoodsData();
+                    }
+                }
+            }
         } catch (error) {
-            //
+            console.error(error);
         }
     };
 

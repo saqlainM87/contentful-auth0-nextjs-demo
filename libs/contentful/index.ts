@@ -12,9 +12,11 @@ class Contentful {
     private static CDA_CLIENT?: ContentfulClientApi;
     private static INSTANCE?: Contentful;
     private static SPACE_ID = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || '';
-    private static ENVIRONMENT?: contentful.Environment;
+    private environment?: contentful.Environment;
 
-    private constructor() {}
+    private constructor() {
+        this.setEnvironment();
+    }
 
     public static createInstance = (): Contentful => {
         if (Contentful.INSTANCE) {
@@ -29,7 +31,7 @@ class Contentful {
             Contentful.CDA_CLIENT = createCDAClient({
                 accessToken: Contentful.CDA_ACCESS_TOKEN,
                 space: Contentful.SPACE_ID,
-                environment: Contentful.ENVIRONMENT?.sys.id || 'develop',
+                environment: 'develop',
             });
 
             Contentful.INSTANCE = new Contentful();
@@ -49,9 +51,9 @@ class Contentful {
                 environmentId || 'develop'
             );
 
-            Contentful.ENVIRONMENT = environment;
+            this.environment = environment;
 
-            return Contentful.ENVIRONMENT;
+            return this.environment;
         }
     };
 
@@ -67,8 +69,7 @@ class Contentful {
         contentTypeId: string,
         data: Omit<contentful.EntryProps<contentful.KeyValueMap>, 'sys'>
     ) => {
-        const environment =
-            Contentful.ENVIRONMENT ?? (await this.setEnvironment());
+        const environment = this.environment ?? (await this.setEnvironment());
         const newEntry = await environment?.createEntry(contentTypeId, data);
         const publishedEntry = await newEntry?.publish();
 
@@ -76,8 +77,7 @@ class Contentful {
     };
 
     public removeEntry = async (entryId: string) => {
-        const environment =
-            Contentful.ENVIRONMENT ?? (await this.setEnvironment());
+        const environment = this.environment ?? (await this.setEnvironment());
         const entry = await environment?.getEntry(entryId);
         const unpublishedEntry = await entry?.unpublish();
 
@@ -89,8 +89,7 @@ class Contentful {
         fieldToUpdate: string,
         data: any
     ) => {
-        const environment =
-            Contentful.ENVIRONMENT ?? (await this.setEnvironment());
+        const environment = this.environment ?? (await this.setEnvironment());
         const entry = await environment?.getEntry(entryId);
 
         if (entry) {
@@ -111,6 +110,10 @@ class Contentful {
             return await updatedEntry.publish();
         }
     };
+
+    public get currentEnvironment(): contentful.Environment | undefined {
+        return this.environment;
+    }
 }
 
 export const contentfulInstance = Contentful.createInstance();
