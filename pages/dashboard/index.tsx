@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 
 import { contentfulInstance as contentful } from '../../libs/contentful';
+import { Entry } from 'contentful-management';
 
 const Dashboard: NextPage = () => {
     const { user, error, isLoading } = useUser();
@@ -14,13 +15,13 @@ const Dashboard: NextPage = () => {
 
     const getFoodsData = useCallback(async () => {
         try {
-            const entries = await contentful.getEntries({
-                content_type: 'favoriteFoods',
-                'fields.userId': user?.sub,
+            const entries: any = await contentful.getEntries({
+                content_type: 'user',
+                'fields.id': user?.sub,
             });
 
             if (entries) {
-                setFoods(entries.items);
+                setFoods(entries.items?.[0]?.fields?.favoriteFoods);
             }
         } catch (error) {
             //
@@ -35,23 +36,60 @@ const Dashboard: NextPage = () => {
 
     const handleAdd = async () => {
         try {
-            const entry = await contentful.createEntry('favoriteFoods', {
-                fields: {
-                    userId: {
-                        'en-US': user?.sub,
-                    },
-                    foodName: {
-                        'en-US': foodToAdd,
-                    },
-                },
+            let foodEntry: Entry | undefined;
+            let newUserEntry: Entry | undefined;
+
+            const userEntries = await contentful.getEntries({
+                content_type: 'user',
+                'fields.id': user?.sub,
             });
 
-            if (entry) {
+            if (!userEntries?.items?.length) {
+                newUserEntry = await contentful.createEntry('user', {
+                    fields: {
+                        name: {
+                            'en-US': user?.nickname,
+                        },
+                        id: {
+                            'en-US': user?.sub,
+                        },
+                    },
+                });
+            }
+
+            const foodEntries = await contentful.getEntries({
+                content_type: 'food',
+                'fields.foodName': foodToAdd,
+            });
+
+            if (!foodEntries?.items.length) {
+                foodEntry = await contentful.createEntry('food', {
+                    fields: {
+                        foodName: {
+                            'en-US': foodToAdd,
+                        },
+                    },
+                });
+            }
+
+            const patchedUserEntry = await contentful.updateEntry(
+                userEntries?.items?.[0]?.sys?.id || newUserEntry?.sys.id || '',
+                'favoriteFoods',
+                {
+                    sys: {
+                        type: 'Link',
+                        linkType: 'Entry',
+                        id: foodEntries?.items[0]?.sys.id || foodEntry?.sys.id,
+                    },
+                }
+            );
+
+            if (patchedUserEntry) {
                 setFoodToAdd('');
                 getFoodsData();
             }
         } catch (error) {
-            //
+            console.error(error);
         }
     };
 
@@ -90,7 +128,7 @@ const Dashboard: NextPage = () => {
                 </div>
 
                 <ul>
-                    {foods.length > 0 ? (
+                    {foods?.length > 0 ? (
                         foods.map((food) => (
                             <li key={food?.sys?.id}>
                                 <span>

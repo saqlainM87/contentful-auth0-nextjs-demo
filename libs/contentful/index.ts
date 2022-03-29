@@ -67,7 +67,8 @@ class Contentful {
         contentTypeId: string,
         data: Omit<contentful.EntryProps<contentful.KeyValueMap>, 'sys'>
     ) => {
-        const environment = this.ENVIRONMENT ?? (await this.setEnvironment());
+        const environment =
+            Contentful.ENVIRONMENT ?? (await this.setEnvironment());
         const newEntry = await environment?.createEntry(contentTypeId, data);
         const publishedEntry = await newEntry?.publish();
 
@@ -75,11 +76,40 @@ class Contentful {
     };
 
     public removeEntry = async (entryId: string) => {
-        const environment = this.ENVIRONMENT ?? (await this.setEnvironment());
+        const environment =
+            Contentful.ENVIRONMENT ?? (await this.setEnvironment());
         const entry = await environment?.getEntry(entryId);
         const unpublishedEntry = await entry?.unpublish();
 
         return unpublishedEntry?.delete();
+    };
+
+    public updateEntry = async (
+        entryId: string,
+        fieldToUpdate: string,
+        data: any
+    ) => {
+        const environment =
+            Contentful.ENVIRONMENT ?? (await this.setEnvironment());
+        const entry = await environment?.getEntry(entryId);
+
+        if (entry) {
+            const existingData = entry.fields?.[fieldToUpdate]?.['en-US'] ?? [];
+
+            // Update existing data
+            entry.fields = {
+                ...entry.fields,
+                [fieldToUpdate]: {
+                    ['en-US']: [...existingData, data],
+                },
+            };
+        }
+
+        const updatedEntry = await entry?.update();
+
+        if (updatedEntry) {
+            return await updatedEntry.publish();
+        }
     };
 }
 
