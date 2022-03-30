@@ -12,27 +12,32 @@ const Dashboard: NextPage = () => {
     const router = useRouter();
     const [foods, setFoods] = useState<any[]>([]);
     const [foodToAdd, setFoodToAdd] = useState('');
+    const [isEnglish, setIsEnglish] = useState(false);
 
-    const getFoodsData = useCallback(async () => {
-        try {
-            const entries: any = await contentful.getEntries({
-                content_type: 'user',
-                'fields.id': user?.sub,
-            });
+    const getFoodsData = useCallback(
+        async (isEnglish?: boolean) => {
+            try {
+                const entries: any = await contentful.getEntries({
+                    content_type: 'user',
+                    'fields.id': user?.sub,
+                    locale: !isEnglish ? 'bn-BD' : 'en-US',
+                });
 
-            if (entries) {
-                setFoods(entries.items?.[0]?.fields?.favoriteFoods);
+                if (entries) {
+                    setFoods(entries.items?.[0]?.fields?.favoriteFoods);
+                }
+            } catch (error) {
+                //
             }
-        } catch (error) {
-            //
-        }
-    }, [user?.sub]);
+        },
+        [user?.sub]
+    );
 
     useEffect(() => {
         if (user) {
-            getFoodsData();
+            getFoodsData(isEnglish);
         }
-    }, [getFoodsData, user]);
+    }, [getFoodsData, user, isEnglish]);
 
     const handleAdd = async () => {
         try {
@@ -67,6 +72,7 @@ const Dashboard: NextPage = () => {
                     fields: {
                         foodName: {
                             'en-US': foodToAdd,
+                            'bn-BD': `${foodToAdd}বাংলা`,
                         },
                     },
                 });
@@ -142,6 +148,14 @@ const Dashboard: NextPage = () => {
                 <div style={{ marginBottom: '2rem' }}>
                     <h2>Name: {user.nickname}</h2>
                     <p>Email: {user.email}</p>
+                    <button
+                        onClick={() => {
+                            setIsEnglish((state) => !state);
+                        }}
+                        style={{ marginLeft: 'auto' }}
+                    >
+                        {isEnglish ? 'বাংলা' : 'English'}
+                    </button>
                 </div>
 
                 <h3>Favorite Foods</h3>
