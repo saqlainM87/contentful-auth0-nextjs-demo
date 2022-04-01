@@ -3,16 +3,16 @@ import { useUser } from '@auth0/nextjs-auth0';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
+import { Entry } from 'contentful-management';
 
 import { contentfulInstance as contentful } from '../../libs/contentful';
-import { Entry } from 'contentful-management';
 
 const Dashboard: NextPage = () => {
     const { user, error, isLoading } = useUser();
     const router = useRouter();
     const [foods, setFoods] = useState<any[]>([]);
     const [foodToAdd, setFoodToAdd] = useState('');
-    const [isEnglish, setIsEnglish] = useState(false);
+    const [isEnglish, setIsEnglish] = useState(true);
 
     const getFoodsData = useCallback(
         async (isEnglish?: boolean) => {
@@ -21,6 +21,8 @@ const Dashboard: NextPage = () => {
                     content_type: 'user',
                     'fields.id': user?.sub,
                     locale: !isEnglish ? 'bn-BD' : 'en-US',
+                    limit: 1,
+                    skip: 0,
                 });
 
                 if (entries) {
@@ -92,7 +94,7 @@ const Dashboard: NextPage = () => {
 
             if (patchedUserEntry) {
                 setFoodToAdd('');
-                getFoodsData();
+                getFoodsData(isEnglish);
             }
         } catch (error) {
             console.error(error);
@@ -129,7 +131,7 @@ const Dashboard: NextPage = () => {
                     if (updatedEntry) {
                         await updatedEntry.publish();
 
-                        getFoodsData();
+                        getFoodsData(isEnglish);
                     }
                 }
             }
