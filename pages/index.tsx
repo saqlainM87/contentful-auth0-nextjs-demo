@@ -1,19 +1,26 @@
-import { useUser } from '@auth0/nextjs-auth0';
-import type { NextPage } from 'next';
+import type { GetServerSideProps, NextPage } from 'next';
+import { getSession } from 'next-auth/react';
 import Head from 'next/head';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
 
 import styles from '../styles/Home.module.css';
 
-const Home: NextPage = () => {
-    const { user } = useUser();
-    const router = useRouter();
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+    const session = await getSession({ req });
 
-    if (user) {
-        router.push('/dashboard');
+    // If already logged in, redirects to Dashboard page
+    if (session) {
+        res.setHeader('location', '/dashboard');
+        res.statusCode = 302;
+        res.end();
     }
 
+    return {
+        props: {},
+    };
+};
+
+const Home: NextPage = () => {
     return (
         <div className={styles.container}>
             <Head>

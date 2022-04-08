@@ -1,25 +1,52 @@
-import type { NextPage } from 'next';
-import { useUser } from '@auth0/nextjs-auth0';
+import type { NextPage, GetServerSideProps } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 import { Entry } from 'contentful-management';
+import { signOut, getSession } from 'next-auth/react';
+import { Session } from 'next-auth';
 
 import { contentfulInstance as contentful } from '../../libs/contentful';
 
-const Dashboard: NextPage = () => {
-    const { user, error, isLoading } = useUser();
-    const router = useRouter();
+interface DashboardProps {
+    loadedSession?: Session | null;
+}
+
+export const getServerSideProps: GetServerSideProps<DashboardProps> = async ({
+    req,
+    res,
+}) => {
+    const session = await getSession({ req });
+
+    // If not logged in, redirects to Login page
+    if (!session) {
+        res.setHeader('location', '/login');
+        res.statusCode = 302;
+        res.end();
+
+        return { props: {} };
+    }
+
+    return {
+        props: {
+            loadedSession: session,
+        },
+    };
+};
+
+const Dashboard: NextPage<DashboardProps> = ({ loadedSession }) => {
     const [foods, setFoods] = useState<any[]>([]);
     const [foodToAdd, setFoodToAdd] = useState('');
     const [isEnglish, setIsEnglish] = useState(true);
+
+    const user = loadedSession?.user;
+    const userSub = (user as any)?.sub;
 
     const getFoodsData = useCallback(
         async (isEnglish?: boolean) => {
             try {
                 const entries: any = await contentful.getEntries({
                     content_type: 'user',
-                    'fields.id': user?.sub,
+                    'fields.id': userSub,
                     locale: !isEnglish ? 'bn-BD' : 'en-US',
                     limit: 1,
                     skip: 0,
@@ -32,7 +59,7 @@ const Dashboard: NextPage = () => {
                 //
             }
         },
-        [user?.sub]
+        [userSub]
     );
 
     useEffect(() => {
@@ -48,17 +75,17 @@ const Dashboard: NextPage = () => {
 
             const userEntries = await contentful.getEntries({
                 content_type: 'user',
-                'fields.id': user?.sub,
+                'fields.id': userSub,
             });
 
             if (!userEntries?.items?.length) {
                 newUserEntry = await contentful.createEntry('user', {
                     fields: {
                         name: {
-                            'en-US': user?.nickname,
+                            'en-US': user?.name,
                         },
                         id: {
-                            'en-US': user?.sub,
+                            'en-US': userSub,
                         },
                     },
                 });
@@ -108,7 +135,7 @@ const Dashboard: NextPage = () => {
             if (environment) {
                 const userEntries = await environment.getEntries({
                     content_type: 'user',
-                    'fields.id': user?.sub,
+                    'fields.id': userSub,
                 });
                 const entryToUpdate = userEntries?.items[0];
 
@@ -140,15 +167,11 @@ const Dashboard: NextPage = () => {
         }
     };
 
-    if (isLoading) return <div>Loading...</div>;
-
-    if (error) return <div>{error.message}</div>;
-
     if (user) {
         return (
             <div>
                 <div style={{ marginBottom: '2rem' }}>
-                    <h2>Name: {user.nickname}</h2>
+                    <h2>Name: {user.name}</h2>
                     <p>Email: {user.email}</p>
                     <button
                         onClick={() => {
@@ -192,14 +215,12 @@ const Dashboard: NextPage = () => {
                     )}
                 </ul>
 
-                <button style={{ marginTop: '2rem' }}>
-                    <Link href="/api/auth/logout">Logout</Link>
+                <button onClick={() => signOut()} style={{ marginTop: '2rem' }}>
+                    <Link href="">Logout</Link>
                 </button>
             </div>
         );
     }
-
-    router.replace('/login');
 
     return null;
 };
