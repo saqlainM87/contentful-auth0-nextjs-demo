@@ -1,6 +1,6 @@
 import type { GetServerSideProps, NextPage } from 'next';
-import Link from 'next/link';
 import { getSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
 export const getServerSideProps: GetServerSideProps = async ({ res, req }) => {
     const session = await getSession({ req });
@@ -16,11 +16,18 @@ export const getServerSideProps: GetServerSideProps = async ({ res, req }) => {
 };
 
 const Login: NextPage = () => {
+    const router = useRouter();
+
     return (
         <div>
             <h1>Login Page</h1>
-            <button onClick={() => signIn()}>
-                <Link href="">Login</Link>
+
+            <button
+                onClick={() => {
+                    signIn('cognito');
+                }}
+            >
+                Login
             </button>
         </div>
     );

@@ -215,8 +215,15 @@ const Dashboard: NextPage<DashboardProps> = ({ loadedSession }) => {
                     )}
                 </ul>
 
-                <button onClick={() => signOut()} style={{ marginTop: '2rem' }}>
-                    <Link href="">Logout</Link>
+                <button
+                    onClick={() =>
+                        signOut({
+                            callbackUrl: '/api/auth/logout',
+                        })
+                    }
+                    style={{ marginTop: '2rem' }}
+                >
+                    Logout
                 </button>
             </div>
         );
